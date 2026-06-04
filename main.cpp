@@ -1,3 +1,25 @@
+/*********************************************************************************************
+* Project Type: Console_Application                                                          *
+* Project Name: C:\Users\24svi\CLionProjects\PLANE_PR                                        *
+* File Name: main.cpp                                                                        *
+* Language: C++, CLion                                                                       *
+* Programmer: Ковалев Святослав Александрович                                                *
+* Modified by:                                                                               *
+* Created: 04.06.2026                                                                        *
+* Last Revision: 04.06.2026                                                                  *
+* Comment:                                                                                   *
+* Тема: «Структуры и индексная сортировка»                                                   *
+* 1) подготовить программу, осуществляющую печать таблицы о самолетах, совершающих посадку   *
+* на каждом аэродроме в порядке убывания времени посадки (использовать индексную             *
+* сортировку методом «пузырька»);                                                            *
+* 2) обеспечить входной контроль времени посадки, бортового номера и аэродрома посадки,      *
+* выполнить отладку и тестирование.                                                          *
+* Чтение данных из файла производить с использованием функций ввода/вывода языка С++.        *
+* Алгоритм должен быть параметризован; обмен данными с подпрограммой должен осуществляться   *
+* только через параметры; исходные данные хранятся в отдельном файле.                        *
+*********************************************************************************************/
+
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -5,69 +27,41 @@
 
 using namespace std;
 
-
-
 // Максимальное количество записей
 const int MAX_RECORDS = 100;
 
 // Структура для хранения данных о самолете
 struct Flight {
-    int timeInMinutes; // Время в минутах от начала суток (для удобной сортировки)
+    int timeInMinutes; // Время в минутах от начала суток
     string timeStr;    // Исходная строка времени (ЧЧ:ММ)
     string model;      // Марка ЛА
     string tailNum;    // Бортовой номер
     int airportNum;    // Номер аэродрома (1, 2 или 3)
 };
 
-// Функция входного контроля и парсинга времени
-bool validateAndParseTime(const string& timeStr, int& timeInMinutes) {
-    if (timeStr.length() != 5 || timeStr[2] != ':') return false;
+// --- ПРОТОТИПЫ ФУНКЦИЙ ---
+bool validateAndParseTime(const string& timeStr, int& timeInMinutes);
+bool validateAndParseAirport(const string& aptStr, int& aptNum);
+void indexBubbleSort(const Flight arr[], int indices[], int n);
 
-    int h = (timeStr[0] - '0') * 10 + (timeStr[1] - '0');
-    int m = (timeStr[3] - '0') * 10 + (timeStr[4] - '0');
-
-    if (h < 0 || h > 23 || m < 0 || m > 59) return false;
-
-    timeInMinutes = h * 60 + m;
-    return true;
-}
-
-// Функция входного контроля и парсинга аэродрома
-bool validateAndParseAirport(const string& aptStr, int& aptNum) {
-    if (aptStr == "1" || aptStr == "АП1" || aptStr == "AP1") { aptNum = 1; return true; }
-    if (aptStr == "2" || aptStr == "АП2" || aptStr == "AP2") { aptNum = 2; return true; }
-    if (aptStr == "3" || aptStr == "АП3" || aptStr == "AP3") { aptNum = 3; return true; }
-    return false;
-}
-
-// Функция индексной сортировки методом пузырька (по убыванию времени)
-// Обмен данными происходит только через параметры
-void indexBubbleSort(const Flight arr[], int indices[], int n) {
-    for (int i = 0; i < n - 1; i++) {
-        for (int j = 0; j < n - i - 1; j++) {
-            // Если время у текущего элемента меньше, чем у следующего - меняем ИНДЕКСЫ местами (сортировка по убыванию)
-            if (arr[indices[j]].timeInMinutes < arr[indices[j + 1]].timeInMinutes) {
-                int temp = indices[j];
-                indices[j] = indices[j + 1];
-                indices[j + 1] = temp;
-            }
-        }
-    }
-}
-
+// --- ГЛАВНАЯ ФУНКЦИЯ ---
 int main() {
     SetConsoleCP(65001);
     SetConsoleOutputCP(65001);
-    //setlocale(LC_ALL, "Russian"); // Для корректного вывода кириллицы в консоль
+
+    // ==========================================
+    // ИМЯ ФАЙЛА ДЛЯ ТЕСТИРОВАНИЯ (меняй здесь)
+    string filename = "data8.txt";
+    // ==========================================
 
     Flight records[MAX_RECORDS];
     int indices[MAX_RECORDS];
     int count = 0;
 
     // Открываем файл с исходными данными
-    ifstream file("data.txt");
+    ifstream file(filename);
     if (!file.is_open()) {
-        cout << "Ошибка: не удалось открыть файл data.txt" << endl;
+        cout << "Ошибка: не удалось открыть файл " << filename << endl;
         return 1;
     }
 
@@ -87,7 +81,7 @@ int main() {
             cout << "[Пропущено] Ошибка формата времени: " << tStr << " (" << mod << ")" << endl;
             continue;
         }
-        if (tail.length() < 3) { // Базовая проверка бортового номера на длину
+        if (tail.length() < 3) {
             cout << "[Пропущено] Некорректный бортовой номер: " << tail << endl;
             continue;
         }
@@ -109,9 +103,9 @@ int main() {
     }
     file.close();
 
-    cout << "\n--- Результаты сортировки ---\n\n";
+    cout << "\n--- Результаты сортировки (Файл: " << filename << ") ---\n\n";
 
-    // Вызов функции сортировки (сортируется массив индексов, а не самих данных)
+    // Вызов функции сортировки
     indexBubbleSort(records, indices, count);
 
     // Печать таблицы по каждому аэродрому
@@ -139,4 +133,37 @@ int main() {
     }
 
     return 0;
+}
+
+// --- РЕАЛИЗАЦИЯ ФУНКЦИЙ ---
+
+bool validateAndParseTime(const string& timeStr, int& timeInMinutes) {
+    if (timeStr.length() != 5 || timeStr[2] != ':') return false;
+
+    int h = (timeStr[0] - '0') * 10 + (timeStr[1] - '0');
+    int m = (timeStr[3] - '0') * 10 + (timeStr[4] - '0');
+
+    if (h < 0 || h > 23 || m < 0 || m > 59) return false;
+
+    timeInMinutes = h * 60 + m;
+    return true;
+}
+
+bool validateAndParseAirport(const string& aptStr, int& aptNum) {
+    if (aptStr == "1" || aptStr == "АП1" || aptStr == "AP1") { aptNum = 1; return true; }
+    if (aptStr == "2" || aptStr == "АП2" || aptStr == "AP2") { aptNum = 2; return true; }
+    if (aptStr == "3" || aptStr == "АП3" || aptStr == "AP3") { aptNum = 3; return true; }
+    return false;
+}
+
+void indexBubbleSort(const Flight arr[], int indices[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[indices[j]].timeInMinutes < arr[indices[j + 1]].timeInMinutes) {
+                int temp = indices[j];
+                indices[j] = indices[j + 1];
+                indices[j + 1] = temp;
+            }
+        }
+    }
 }
